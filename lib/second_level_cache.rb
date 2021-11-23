@@ -63,7 +63,7 @@ module SecondLevelCache
         record = SecondLevelCache.cache_store.read(second_level_cache_key(id))
 
         action = record ? 'hit' : 'miss'
-        Config.statsd.increment("orderweb.second_level_cache_stats.#{action}") if Config.statsd
+        Config.statsd.increment("orderweb.second_level_cache_stats.#{action}", tags: { model: record.first }) if Config.statsd
 
         RecordMarshal.load(record)
       end
