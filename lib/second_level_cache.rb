@@ -9,7 +9,7 @@ module SecondLevelCache
   end
 
   class << self
-    delegate :logger, :cache_store, :cache_key_prefix, :to => Config
+    delegate :logger, :cache_store, :cache_key_prefix, :statsd, :caching_enabled, to: Config
   end
 
   module Mixin
@@ -19,7 +19,7 @@ module SecondLevelCache
       attr_reader :second_level_cache_options
 
       def acts_as_cached(options = {})
-        @second_level_cache_enabled = true
+        @second_level_cache_enabled = Config.caching_enabled
         @second_level_cache_options = options
         @second_level_cache_options[:expires_in] ||= 1.week
         @second_level_cache_options[:version] ||= 0
@@ -58,7 +58,14 @@ module SecondLevelCache
       end
 
       def read_second_level_cache(id)
-        RecordMarshal.load(SecondLevelCache.cache_store.read(second_level_cache_key(id))) if self.second_level_cache_enabled?
+        return unless self.second_level_cache_enabled?
+
+        record = SecondLevelCache.cache_store.read(second_level_cache_key(id))
+
+        action = record ? 'hit' : 'miss'
+        Config.statsd.increment("orderweb.second_level_cache_stats.#{action}") if Config.statsd
+
+        RecordMarshal.load(record)
       end
 
       def expire_second_level_cache(id)

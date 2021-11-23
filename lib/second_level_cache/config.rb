@@ -3,7 +3,15 @@ module SecondLevelCache
   module Config
     extend self
 
-    attr_accessor :cache_store, :logger, :cache_key_prefix
+    attr_accessor :cache_store, :logger, :cache_key_prefix, :statsd, :caching_enabled
+
+    def caching_enabled
+      @caching_enabled ||= true
+    end
+
+    def statsd
+      @statsd
+    end
 
     def cache_store
       @cache_store ||= Rails.cache if defined?(Rails)
